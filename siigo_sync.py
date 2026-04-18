@@ -83,9 +83,9 @@ def main():
     print("Inicio del proceso SIIGO")
 
     # Credenciales SIIGO
-    username = "TU_USUARIO"
-    password = "TU_CLAVE"
-    access_key = "TU_ACCESS_KEY"
+    username = "Docdanielgarciac@gmail.com"
+    password = "Rafael2019*"
+    access_key = "NmEyMWVhMWQtMWUxMC00MjQ0LWFkY2YtMzBkNmE1NTA5MjVlOjMxPC8xT0B3ME8="
 
     auth_url = "https://api.siigo.com/auth"
 
