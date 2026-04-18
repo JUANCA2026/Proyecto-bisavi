@@ -1,8 +1,6 @@
 name: Ejecutar SIIGO
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -13,19 +11,8 @@ jobs:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Instalar dependencias
-        run: pip install -r requirements.txt
-
       - name: Ver archivos
         run: ls -la
 
-      - name: Ejecutar script
-        run: |
-          echo "ARCHIVO EJECUTADO:"
-          cat siigo_sync.py
-          python siigo_sync.py
+      - name: Mostrar script
+        run: cat siigo_sync.py
