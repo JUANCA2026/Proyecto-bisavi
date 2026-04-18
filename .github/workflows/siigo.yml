@@ -21,5 +21,11 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      - name: Ver archivos
+        run: ls -la
+
       - name: Ejecutar script
-        run: python siigo_sync.py
+        run: |
+          echo "ARCHIVO EJECUTADO:"
+          cat siigo_sync.py
+          python siigo_sync.py
