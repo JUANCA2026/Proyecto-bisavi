@@ -19,7 +19,7 @@ def _safe_get_pagination(data):
     return pag
 
 def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
-    page = 1
+    page = 1 
     page_size = 100
     todos_los_resultados = []
     total_items = 0
