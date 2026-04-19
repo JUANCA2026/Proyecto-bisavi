@@ -1,12 +1,10 @@
-name: Ejecutar SIIGO
+name: SIIGO DEBUG VERSION CHECK
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
-  run-siigo:
+  debug:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,14 +17,20 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependencias
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Ejecutar script SIIGO
+      - name: Verificar archivo y ejecutar
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           SIIGO_USERNAME: ${{ secrets.SIIGO_USERNAME }}
           SIIGO_PASSWORD: ${{ secrets.SIIGO_PASSWORD }}
           SIIGO_ACCESS_KEY: ${{ secrets.SIIGO_ACCESS_KEY }}
-        run: python siigo_sync.py
+        run: |
+          echo "COMMIT ACTUAL:"
+          git rev-parse HEAD
+          echo "BUSCANDO open_by_key:"
+          grep -n "open_by_key" siigo_sync.py || true
+          echo "BUSCANDO gc.open:"
+          grep -n 'gc.open("DDG_data_2026")' siigo_sync.py || true
+          echo "INICIO SCRIPT:"
+          python siigo_sync.py
