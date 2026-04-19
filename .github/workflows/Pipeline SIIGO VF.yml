@@ -1,6 +1,10 @@
 name: SIIGO FULL PIPELINE
 
 on:
+  schedule:
+    - cron: '0 11 * * *'  # 6:00 AM Colombia
+    - cron: '0 17 * * *'  # 12:00 PM Colombia
+    - cron: '0 0 * * *'   # 7:00 PM Colombia
   workflow_dispatch:
 
 jobs:
