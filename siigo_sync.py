@@ -180,6 +180,9 @@ def procesar_payment_receipts(api_headers):
 
 def conectar_google_sheets():
     creds_json = os.environ.get("GOOGLE_CREDENTIALS")
+    if not creds_json:
+        raise Exception("No se encontró GOOGLE_CREDENTIALS en GitHub Secrets")
+
     creds_dict = json.loads(creds_json)
 
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -190,7 +193,7 @@ def conectar_google_sheets():
     )
 
     gc = gspread.authorize(credentials)
-    return gc.open_by_key(SHEET_ID)
+    return gc.open_by_key("1NYMJPor7PQMXz3cyo2UXnvS3pJ2TVbLwIplI3whKkSU")
 
 
 def subir_dataframe(sh, nombre, df):
