@@ -78,13 +78,22 @@ def procesar_invoices(api_headers):
     for doc in data:
         for item in (doc.get("items", []) or []):
             filas.append({
-                "id": doc.get("id"),
-                "fecha": doc.get("date"),
-                "cliente": doc.get("customer", {}).get("identification"),
-                "servicio": item.get("description"),
-                "cantidad": item.get("quantity"),
-                "precio": limpiar_valor(item.get("price")),
-                "total": limpiar_valor((item.get("quantity") or 0) * (item.get("price") or 0))
+                "id_documento": doc.get("id"),
+                "tipo_documento": "factura_venta",
+                "movimiento": "ingreso",
+                "consecutivo_documento": doc.get("name"),
+                "fecha_documento": doc.get("date"),
+                "id_cliente/proveedor": doc.get("customer", {}).get("identification", ""),
+                "id_servicio": item.get("code", ""),
+                "servicio": item.get("description", ""),
+                "cantidad_servicio": item.get("quantity", ""),
+                "precio_unitario_servicio": limpiar_valor(item.get("price", "")),
+                "id_pago": pago.get("id", ""),
+                "medio_de_pago": pago.get("name", ""),
+                "pago_total": pago_total_item,
+                "debito_credito": "",
+                "fuente": "Siigo",
+                "url_publica": doc.get("public_url")
             })
 
     return filas
@@ -101,13 +110,22 @@ def procesar_purchases(api_headers):
     for doc in data:
         for item in (doc.get("items", []) or []):
             filas.append({
-                "id": doc.get("id"),
-                "fecha": doc.get("date"),
-                "proveedor": doc.get("supplier", {}).get("identification"),
-                "servicio": item.get("description"),
-                "cantidad": item.get("quantity"),
-                "precio": limpiar_valor(item.get("price")),
-                "total": limpiar_valor((item.get("quantity") or 0) * (item.get("price") or 0))
+                "id_documento": doc.get("id"),
+                "tipo_documento": "factura_compra",
+                "movimiento": "egreso",
+                "consecutivo_documento": doc.get("name"),
+                "fecha_documento": doc.get("date"),
+                "id_cliente/proveedor": doc.get("supplier", {}).get("identification", ""),
+                "id_servicio": item.get("code", ""),
+                "servicio": item.get("description", ""),
+                "cantidad_servicio": item.get("quantity", ""),
+                "precio_unitario_servicio": limpiar_valor(item.get("price", "")),
+                "id_pago": pago.get("id", ""),
+                "medio_de_pago": pago.get("name", ""),
+                "pago_total": pago_total_item,
+                "debito_credito": "",
+                "fuente": "Siigo",
+                "url_publica": doc.get("public_url")
             })
 
     return filas
@@ -128,11 +146,22 @@ def procesar_journals(api_headers):
 
         for item in items:
             filas.append({
-                "id": doc.get("id"),
-                "fecha": doc.get("date"),
-                "descripcion": item.get("description"),
-                "valor": limpiar_valor(item.get("value")),
-                "movimiento": item.get("account", {}).get("movement")
+               "id_documento": doc.get("id"),
+                "tipo_documento": "comprobante_contable",
+                "movimiento": "egreso",
+                "consecutivo_documento": doc.get("name"),
+                "fecha_documento": doc.get("date"),
+                "id_cliente/proveedor": customer.get("identification", ""),
+                "id_servicio": account.get("code", ""),
+                "servicio": item.get("description", ""),
+                "cantidad_servicio": "",
+                "precio_unitario_servicio": "",
+                "id_pago": "",
+                "medio_de_pago": "",
+                "pago_total": limpiar_valor(item.get("value", "")),
+                "debito_credito": account.get("movement", ""),
+                "fuente": "Siigo",
+                "url_publica": doc.get("public_url")
             })
 
     return filas
@@ -153,10 +182,22 @@ def procesar_payment_receipts(api_headers):
 
         for item in items:
             filas.append({
-                "id": doc.get("id"),
-                "fecha": doc.get("date"),
-                "descripcion": item.get("description"),
-                "valor": limpiar_valor(item.get("value"))
+                "id_documento": doc.get("id"),
+                "tipo_documento": "recibo_pago_egreso",
+                "movimiento": item.get("account", {}).get("movement", ""),
+                "consecutivo_documento": doc.get("name"),
+                "fecha_documento": doc.get("date"),
+                "id_cliente/proveedor": customer_id,
+                "id_servicio": "",
+                "servicio": item.get("description", ""),
+                "cantidad_servicio": "",
+                "precio_unitario_servicio": "",
+                "id_pago": "",
+                "medio_de_pago": "",
+                "pago_total": limpiar_valor(item.get("value", "")),
+                "debito_credito": "",
+                "fuente": "Siigo",
+                "url_publica": doc.get("public_url")
             })
 
     return filas
