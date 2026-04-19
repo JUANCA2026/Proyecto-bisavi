@@ -121,8 +121,10 @@ def main():
     )
     df = pd.DataFrame(resultados)
     
-    print(f"Se descargaron {len(resultados)} documentos")
-    print("Fin del proceso")
+print(f"Se descargaron {len(resultados)} documentos")
+print("Primeras filas del dataframe:")
+print(df.head().to_string())
+print("Fin del proceso")
 
 if __name__ == "__main__":
     main()
