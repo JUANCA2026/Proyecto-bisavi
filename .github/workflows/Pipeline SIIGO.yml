@@ -1,4 +1,5 @@
-name: SIIGO DEBUG VERSION2 CHECK
+name: SIIGO FULL PIPELINE
+
 on:
   workflow_dispatch:
 
