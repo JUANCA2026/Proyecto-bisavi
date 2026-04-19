@@ -52,8 +52,14 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
 
         resultados = data.get("results", []) or []
 
-        print(f"Página {page}: {len(resultados)} registros")
+        num_items_pagina = 0
+        for doc in resultados:
+            items = doc.get("items") or []
+            if isinstance(items, dict):
+                items = [items]
+            num_items_pagina += len(items)
 
+        print(f"Página {page}: {num_items_pagina} registros")
         todos_los_resultados.extend(resultados)
 
         if page >= total_pages:
@@ -65,8 +71,6 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
     return todos_los_resultados
 
 
-# -------- PROCESAMIENTO --------
-
 def procesar_invoices(api_headers):
     data = obtener_todos_los_resultados(
         "https://api.siigo.com/v1/invoices",
@@ -77,7 +81,21 @@ def procesar_invoices(api_headers):
 
     for doc in data:
         for item in (doc.get("items", []) or []):
-            filas.append({
+            try:
+                qty = float(item.get("quantity", 0) or 0)
+            except:
+                qty = 0.0
+
+            try:
+                unit_price = float(item.get("price", 0) or 0)
+            except:
+                unit_price = 0.0
+
+            pago_total_item = int(round(qty * unit_price))
+            pagos = doc.get("payments", []) or []
+            pago = pagos[0] if pagos else {}
+
+            fila = {
                 "id_documento": doc.get("id"),
                 "tipo_documento": "factura_venta",
                 "movimiento": "ingreso",
@@ -94,7 +112,8 @@ def procesar_invoices(api_headers):
                 "debito_credito": "",
                 "fuente": "Siigo",
                 "url_publica": doc.get("public_url")
-            })
+            }
+            filas.append(fila)
 
     return filas
 
@@ -108,8 +127,23 @@ def procesar_purchases(api_headers):
     filas = []
 
     for doc in data:
+        pagos = doc.get("payments", []) or []
+        pago = pagos[0] if pagos else {}
+
         for item in (doc.get("items", []) or []):
-            filas.append({
+            try:
+                qty = float(item.get("quantity", 0) or 0)
+            except:
+                qty = 0.0
+
+            try:
+                unit_price = float(item.get("price", 0) or 0)
+            except:
+                unit_price = 0.0
+
+            pago_total_item = int(round(qty * unit_price))
+
+            fila = {
                 "id_documento": doc.get("id"),
                 "tipo_documento": "factura_compra",
                 "movimiento": "egreso",
@@ -126,7 +160,8 @@ def procesar_purchases(api_headers):
                 "debito_credito": "",
                 "fuente": "Siigo",
                 "url_publica": doc.get("public_url")
-            })
+            }
+            filas.append(fila)
 
     return filas
 
@@ -134,7 +169,7 @@ def procesar_purchases(api_headers):
 def procesar_journals(api_headers):
     data = obtener_todos_los_resultados(
         "https://api.siigo.com/v1/journals",
-        "contable",
+        "comprobantes_contables",
         api_headers
     )
     filas = []
@@ -145,8 +180,11 @@ def procesar_journals(api_headers):
             items = [items]
 
         for item in items:
-            filas.append({
-               "id_documento": doc.get("id"),
+            account = item.get("account", {}) or {}
+            customer = item.get("customer", {}) or {}
+
+            fila = {
+                "id_documento": doc.get("id"),
                 "tipo_documento": "comprobante_contable",
                 "movimiento": "egreso",
                 "consecutivo_documento": doc.get("name"),
@@ -162,7 +200,8 @@ def procesar_journals(api_headers):
                 "debito_credito": account.get("movement", ""),
                 "fuente": "Siigo",
                 "url_publica": doc.get("public_url")
-            })
+            }
+            filas.append(fila)
 
     return filas
 
@@ -170,7 +209,7 @@ def procesar_journals(api_headers):
 def procesar_payment_receipts(api_headers):
     data = obtener_todos_los_resultados(
         "https://api.siigo.com/v1/payment-receipts",
-        "pagos",
+        "recibos_pago_egreso",
         api_headers
     )
     filas = []
@@ -181,7 +220,9 @@ def procesar_payment_receipts(api_headers):
             items = [items]
 
         for item in items:
-            filas.append({
+            customer_id = item.get("customer", {}).get("identification", "")
+
+            fila = {
                 "id_documento": doc.get("id"),
                 "tipo_documento": "recibo_pago_egreso",
                 "movimiento": item.get("account", {}).get("movement", ""),
@@ -198,15 +239,17 @@ def procesar_payment_receipts(api_headers):
                 "debito_credito": "",
                 "fuente": "Siigo",
                 "url_publica": doc.get("public_url")
-            })
+            }
+            filas.append(fila)
 
     return filas
 
 
-# -------- GOOGLE SHEETS --------
-
 def conectar_google_sheets():
     creds_json = os.environ.get("GOOGLE_CREDENTIALS")
+    if not creds_json:
+        raise Exception("No se encontró GOOGLE_CREDENTIALS en GitHub Secrets")
+
     creds_dict = json.loads(creds_json)
 
     credentials = Credentials.from_service_account_info(
@@ -222,14 +265,12 @@ def subir_dataframe(sh, nombre, df):
     try:
         ws = sh.worksheet(nombre)
     except:
-        ws = sh.add_worksheet(title=nombre, rows=1000, cols=20)
+        ws = sh.add_worksheet(title=nombre, rows=1000, cols=30)
 
     ws.clear()
     set_with_dataframe(ws, df)
     print(f"✔ Subido: {nombre}")
 
-
-# -------- MAIN --------
 
 def main():
     print("Inicio del proceso SIIGO")
