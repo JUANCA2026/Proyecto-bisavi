@@ -1,4 +1,4 @@
-name: SIIGO DEBUG VERSION1 CHECK
+name: SIIGO DEBUG VERSION2 CHECK
 on:
   workflow_dispatch:
 
