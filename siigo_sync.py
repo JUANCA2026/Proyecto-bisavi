@@ -119,7 +119,8 @@ def main():
         nombre_hoja="facturas_venta",
         api_headers=api_headers
     )
-
+    df = pd.DataFrame(resultados)
+    
     print(f"Se descargaron {len(resultados)} documentos")
     print("Fin del proceso")
 
