@@ -31,7 +31,6 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
     page = 1
     page_size = 100
     todos_los_resultados = []
-    total_items = 0
     total_pages = None
 
     print(f"\nDescargando {nombre_hoja}...")
@@ -39,47 +38,34 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
     while True:
         url = f"{endpoint}?page={page}&page_size={page_size}"
 
-        intentos = 0
-        espera = 2
-        while True:
-            response = requests.get(url, headers=api_headers)
-            if response.status_code == 200:
-                break
-            intentos += 1
-            if intentos >= 3:
-                raise Exception(f"Error en página {page}: {response.text}")
-            time.sleep(espera)
-            espera *= 2
+        response = requests.get(url, headers=api_headers)
+
+        if response.status_code != 200:
+            raise Exception(f"Error en página {page}: {response.text}")
 
         data = response.json()
 
         if total_pages is None:
             pag = _safe_get_pagination(data)
-            total_results = pag.get("total_results")
-            if total_results:
-                total_pages = ceil(total_results / page_size)
+            total = pag.get("total_results", 0)
+            total_pages = ceil(total / page_size) if total else 1
 
         resultados = data.get("results", []) or []
 
         print(f"Página {page}: {len(resultados)} registros")
 
         todos_los_resultados.extend(resultados)
-        total_items += len(resultados)
 
-        if total_pages and page >= total_pages:
-            break
-
-        if not total_pages and len(resultados) < page_size:
+        if page >= total_pages:
             break
 
         page += 1
         time.sleep(1)
 
-    print(f"Total en {nombre_hoja}: {total_items}\n")
     return todos_los_resultados
 
 
-# ---------- PROCESAMIENTO (DESANIDADO) ----------
+# ---------- PROCESAMIENTO ----------
 
 def procesar_invoices(api_headers):
     data = obtener_todos_los_resultados(
@@ -91,7 +77,7 @@ def procesar_invoices(api_headers):
 
     for doc in data:
         for item in (doc.get("items", []) or []):
-            fila = {
+            filas.append({
                 "id": doc.get("id"),
                 "fecha": doc.get("date"),
                 "cliente": doc.get("customer", {}).get("identification"),
@@ -101,8 +87,7 @@ def procesar_invoices(api_headers):
                 "total": limpiar_valor(
                     (item.get("quantity") or 0) * (item.get("price") or 0)
                 )
-            }
-            filas.append(fila)
+            })
 
     return filas
 
@@ -117,7 +102,7 @@ def procesar_purchases(api_headers):
 
     for doc in data:
         for item in (doc.get("items", []) or []):
-            fila = {
+            filas.append({
                 "id": doc.get("id"),
                 "fecha": doc.get("date"),
                 "proveedor": doc.get("supplier", {}).get("identification"),
@@ -127,8 +112,7 @@ def procesar_purchases(api_headers):
                 "total": limpiar_valor(
                     (item.get("quantity") or 0) * (item.get("price") or 0)
                 )
-            }
-            filas.append(fila)
+            })
 
     return filas
 
@@ -136,21 +120,20 @@ def procesar_purchases(api_headers):
 def procesar_journals(api_headers):
     data = obtener_todos_los_resultados(
         "https://api.siigo.com/v1/journals",
-        "comprobantes",
+        "contable",
         api_headers
     )
     filas = []
 
     for doc in data:
         for item in (doc.get("items", []) or []):
-            fila = {
+            filas.append({
                 "id": doc.get("id"),
                 "fecha": doc.get("date"),
                 "descripcion": item.get("description"),
                 "valor": limpiar_valor(item.get("value")),
                 "movimiento": item.get("account", {}).get("movement")
-            }
-            filas.append(fila)
+            })
 
     return filas
 
@@ -165,13 +148,12 @@ def procesar_payment_receipts(api_headers):
 
     for doc in data:
         for item in (doc.get("items", []) or []):
-            fila = {
+            filas.append({
                 "id": doc.get("id"),
                 "fecha": doc.get("date"),
                 "descripcion": item.get("description"),
                 "valor": limpiar_valor(item.get("value"))
-            }
-            filas.append(fila)
+            })
 
     return filas
 
@@ -180,20 +162,15 @@ def procesar_payment_receipts(api_headers):
 
 def conectar_google_sheets():
     creds_json = os.environ.get("GOOGLE_CREDENTIALS")
-    if not creds_json:
-        raise Exception("No se encontró GOOGLE_CREDENTIALS en GitHub Secrets")
-
     creds_dict = json.loads(creds_json)
-
-    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 
     credentials = Credentials.from_service_account_info(
         creds_dict,
-        scopes=scopes
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
     )
 
     gc = gspread.authorize(credentials)
-    return gc.open_by_key("1NYMJPor7PQMXz3cyo2UXnvS3pJ2TVbLwIplI3whKkSU")
+    return gc.open_by_key(SHEET_ID)
 
 
 def subir_dataframe(sh, nombre, df):
@@ -231,7 +208,8 @@ def main():
 
     api_headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Partner-Id": "DashboardDDG"
     }
 
     sh = conectar_google_sheets()
