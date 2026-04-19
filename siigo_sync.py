@@ -37,7 +37,6 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
 
     while True:
         url = f"{endpoint}?page={page}&page_size={page_size}"
-
         response = requests.get(url, headers=api_headers)
 
         if response.status_code != 200:
@@ -51,9 +50,7 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
             total_pages = ceil(total / page_size) if total else 1
 
         resultados = data.get("results", []) or []
-
         print(f"Página {page}: {len(resultados)} registros")
-
         todos_los_resultados.extend(resultados)
 
         if page >= total_pages:
@@ -64,8 +61,6 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
 
     return todos_los_resultados
 
-
-# ---------- PROCESAMIENTO ----------
 
 def procesar_invoices(api_headers):
     data = obtener_todos_los_resultados(
@@ -84,9 +79,7 @@ def procesar_invoices(api_headers):
                 "servicio": item.get("description"),
                 "cantidad": item.get("quantity"),
                 "precio": limpiar_valor(item.get("price")),
-                "total": limpiar_valor(
-                    (item.get("quantity") or 0) * (item.get("price") or 0)
-                )
+                "total": limpiar_valor((item.get("quantity") or 0) * (item.get("price") or 0))
             })
 
     return filas
@@ -109,9 +102,7 @@ def procesar_purchases(api_headers):
                 "servicio": item.get("description"),
                 "cantidad": item.get("quantity"),
                 "precio": limpiar_valor(item.get("price")),
-                "total": limpiar_valor(
-                    (item.get("quantity") or 0) * (item.get("price") or 0)
-                )
+                "total": limpiar_valor((item.get("quantity") or 0) * (item.get("price") or 0))
             })
 
     return filas
@@ -126,7 +117,11 @@ def procesar_journals(api_headers):
     filas = []
 
     for doc in data:
-        for item in (doc.get("items", []) or []):
+        items = doc.get("items") or []
+        if isinstance(items, dict):
+            items = [items]
+
+        for item in items:
             filas.append({
                 "id": doc.get("id"),
                 "fecha": doc.get("date"),
@@ -147,7 +142,11 @@ def procesar_payment_receipts(api_headers):
     filas = []
 
     for doc in data:
-        for item in (doc.get("items", []) or []):
+        items = doc.get("items") or []
+        if isinstance(items, dict):
+            items = [items]
+
+        for item in items:
             filas.append({
                 "id": doc.get("id"),
                 "fecha": doc.get("date"),
@@ -157,8 +156,6 @@ def procesar_payment_receipts(api_headers):
 
     return filas
 
-
-# ---------- GOOGLE SHEETS ----------
 
 def conectar_google_sheets():
     creds_json = os.environ.get("GOOGLE_CREDENTIALS")
@@ -184,8 +181,6 @@ def subir_dataframe(sh, nombre, df):
     print(f"✔ Subido: {nombre}")
 
 
-# ---------- MAIN ----------
-
 def main():
     print("Inicio del proceso SIIGO")
 
@@ -202,6 +197,9 @@ def main():
             "access_key": access_key
         }
     )
+
+    if auth.status_code != 200:
+        raise Exception(f"Error autenticando: {auth.text}")
 
     access_token = auth.json()["access_token"]
     print("Token generado correctamente")
@@ -226,10 +224,6 @@ def main():
         subir_dataframe(sh, nombre, df)
 
     print("Fin del proceso")
-
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":
