@@ -40,6 +40,7 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
         response = requests.get(url, headers=api_headers)
 
         if response.status_code != 200:
+            print("HEADERS ENVIADOS:", api_headers)
             raise Exception(f"Error en página {page}: {response.text}")
 
         data = response.json()
@@ -50,7 +51,9 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
             total_pages = ceil(total / page_size) if total else 1
 
         resultados = data.get("results", []) or []
+
         print(f"Página {page}: {len(resultados)} registros")
+
         todos_los_resultados.extend(resultados)
 
         if page >= total_pages:
@@ -61,6 +64,8 @@ def obtener_todos_los_resultados(endpoint, nombre_hoja, api_headers):
 
     return todos_los_resultados
 
+
+# -------- PROCESAMIENTO --------
 
 def procesar_invoices(api_headers):
     data = obtener_todos_los_resultados(
@@ -157,6 +162,8 @@ def procesar_payment_receipts(api_headers):
     return filas
 
 
+# -------- GOOGLE SHEETS --------
+
 def conectar_google_sheets():
     creds_json = os.environ.get("GOOGLE_CREDENTIALS")
     creds_dict = json.loads(creds_json)
@@ -180,6 +187,8 @@ def subir_dataframe(sh, nombre, df):
     set_with_dataframe(ws, df)
     print(f"✔ Subido: {nombre}")
 
+
+# -------- MAIN --------
 
 def main():
     print("Inicio del proceso SIIGO")
@@ -209,6 +218,9 @@ def main():
         "Content-Type": "application/json",
         "Partner-Id": "DashboardDDG"
     }
+
+    print("HEADERS QUE SE ESTAN ENVIANDO:")
+    print(api_headers)
 
     sh = conectar_google_sheets()
 
